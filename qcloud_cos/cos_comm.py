@@ -4,14 +4,13 @@ import hashlib
 import base64
 import os
 import io
-import sys
 import xml.dom.minidom
 import xml.etree.ElementTree
-from urllib import quote
-from xml2dict import Xml2Dict
+from urllib.parse import quote
+from .xml2dict import Xml2Dict
 from dicttoxml import dicttoxml
-from cos_exception import CosClientError
-from cos_exception import CosServiceError
+from .cos_exception import CosClientError
+from .cos_exception import CosServiceError
 
 SINGLE_UPLOAD_LENGTH = 5*1024*1024*1024  # 单次上传文件最大为5G
 # kwargs中params到http headers的映射
@@ -50,7 +49,7 @@ maplist = {
 
 
 def to_unicode(s):
-    if isinstance(s, unicode):
+    if isinstance(s, str):
         return s
     else:
         return s.decode('utf-8')
@@ -68,19 +67,19 @@ def dict_to_xml(data):
     root = doc.createElement('CompleteMultipartUpload')
     doc.appendChild(root)
 
-    if 'Part' not in data.keys():
+    if 'Part' not in list(data.keys()):
         raise CosClientError("Invalid Parameter, Part Is Required!")
 
     for i in data['Part']:
         nodePart = doc.createElement('Part')
 
-        if 'PartNumber' not in i.keys():
+        if 'PartNumber' not in list(i.keys()):
             raise CosClientError("Invalid Parameter, PartNumber Is Required!")
 
         nodeNumber = doc.createElement('PartNumber')
         nodeNumber.appendChild(doc.createTextNode(str(i['PartNumber'])))
 
-        if 'ETag' not in i.keys():
+        if 'ETag' not in list(i.keys()):
             raise CosClientError("Invalid Parameter, ETag Is Required!")
 
         nodeETag = doc.createElement('ETag')
@@ -117,7 +116,7 @@ def get_id_from_xml(data, name):
 def mapped(headers):
     """S3到COS参数的一个映射"""
     _headers = dict()
-    for i in headers.keys():
+    for i in list(headers.keys()):
         if i in maplist:
             _headers[maplist[i]] = headers[i]
         else:
@@ -193,19 +192,19 @@ def format_path(path):
 def get_copy_source_info(CopySource):
     """获取拷贝源的所有信息"""
     appid = ""
-    if 'Appid' in CopySource.keys():
+    if 'Appid' in list(CopySource.keys()):
         appid = CopySource['Appid']
-    if 'Bucket' in CopySource.keys():
+    if 'Bucket' in list(CopySource.keys()):
         bucket = CopySource['Bucket']
         bucket = format_bucket(bucket, appid)
     else:
         raise CosClientError('CopySource Need Parameter Bucket')
-    if 'Region' in CopySource.keys():
+    if 'Region' in list(CopySource.keys()):
         region = CopySource['Region']
         region = format_region(region)
     else:
         raise CosClientError('CopySource Need Parameter Region')
-    if 'Key' in CopySource.keys():
+    if 'Key' in list(CopySource.keys()):
         path = CopySource['Key']
     else:
         raise CosClientError('CopySource Need Parameter Key')

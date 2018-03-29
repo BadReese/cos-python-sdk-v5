@@ -2,11 +2,11 @@
 
 import hmac
 import time
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import hashlib
 import logging
-from urllib import quote
-from urlparse import urlparse
+from urllib.parse import quote
+from urllib.parse import urlparse
 from requests.auth import AuthBase
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ def filter_headers(data):
     :return(dict): 计算进签名的头部.
     """
     headers = {}
-    for i in data.keys():
+    for i in list(data.keys()):
         if i == 'Content-Type' or i == 'Host' or i[0] == 'x' or i[0] == 'X':
             headers[i] = data[i]
     return headers
@@ -30,7 +30,7 @@ def to_string(data):
     :param data(unicode|string): 待转换的unicode|string.
     :return(string): 转换后的string.
     """
-    if isinstance(data, unicode):
+    if isinstance(data, str):
         return data.encode('utf8')
     return data
 
@@ -55,12 +55,12 @@ class CosS3Auth(AuthBase):
         uri_params = self._params
         headers = filter_headers(r.headers)
         # reserved keywords in headers urlencode are -_.~, notice that / should be encoded and space should not be encoded to plus sign(+)
-        headers = dict([(k.lower(), quote(v, '-_.~')) for k, v in headers.items()])  # headers中的key转换为小写，value进行encode
+        headers = dict([(k.lower(), quote(v, '-_.~')) for k, v in list(headers.items())])  # headers中的key转换为小写，value进行encode
         format_str = "{method}\n{host}\n{params}\n{headers}\n".format(
             method=r.method.lower(),
             host=path,
-            params=urllib.urlencode(sorted(uri_params.items())),
-            headers='&'.join(map(lambda (x, y): "%s=%s" % (x, y), sorted(headers.items())))
+            params=urllib.parse.urlencode(sorted(uri_params.items())),
+            headers='&'.join(["%s=%s" % (x_y[0], x_y[1]) for x_y in sorted(headers.items())])
         )
         logger.debug("format str: " + format_str)
 
@@ -81,7 +81,7 @@ class CosS3Auth(AuthBase):
             ak=self._secret_id,
             sign_time=sign_time,
             key_time=sign_time,
-            params=';'.join(sorted(map(lambda k: k.lower(), uri_params.keys()))),
+            params=';'.join(sorted([k.lower() for k in list(uri_params.keys())])),
             headers=';'.join(sorted(headers.keys())),
             sign=sign
         )

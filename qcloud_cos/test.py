@@ -1,13 +1,12 @@
 # -*- coding=utf-8
 import random
-import sys
 import time
 import hashlib
 import os
 import requests
-from cos_client import CosS3Client
-from cos_client import CosConfig
-from cos_exception import CosServiceError
+from .cos_client import CosS3Client
+from .cos_client import CosConfig
+from .cos_exception import CosServiceError
 
 SECRET_ID = os.environ["SECRET_ID"]
 SECRET_KEY = os.environ["SECRET_KEY"]
@@ -36,22 +35,22 @@ def gen_file(path, size):
 
 
 def print_error_msg(e):
-    print e.get_origin_msg()
-    print e.get_digest_msg()
-    print e.get_status_code()
-    print e.get_error_code()
-    print e.get_error_msg()
-    print e.get_resource_location()
-    print e.get_trace_id()
-    print e.get_request_id()
+    print(e.get_origin_msg())
+    print(e.get_digest_msg())
+    print(e.get_status_code())
+    print(e.get_error_code())
+    print(e.get_error_msg())
+    print(e.get_resource_location())
+    print(e.get_trace_id())
+    print(e.get_request_id())
 
 
 def setUp():
-    print "start test..."
+    print("start test...")
 
 
 def tearDown():
-    print "function teardown"
+    print("function teardown")
 
 
 def test_put_get_delete_object_10MB():
@@ -374,7 +373,7 @@ def test_get_presigned_url():
         Key='中文.txt'
     )
     assert url
-    print url
+    print(url)
 
 
 def test_get_bucket_location():
@@ -511,7 +510,7 @@ def test_list_multipart_uploads():
         MaxUploads=100
     )
     # abort make sure delete all uploads
-    if 'Upload' in response.keys():
+    if 'Upload' in list(response.keys()):
         for data in response['Upload']:
             response = client.abort_multipart_upload(
                 Bucket=test_bucket,
@@ -558,7 +557,7 @@ def test_upload_file_multithreading():
     ed = time.time()  # 记录结束时间
     if os.path.exists(file_name):
         os.remove(file_name)
-    print ed - st
+    print(ed - st)
 
 
 def test_copy_file_automatically():

@@ -1,26 +1,18 @@
 # -*- coding=utf-8
 
 import requests
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import logging
-import hashlib
-import base64
-import os
-import sys
-import copy
 import xml.dom.minidom
 import xml.etree.ElementTree
 from requests import Request, Session
-from urllib import quote
 from hashlib import md5
-from streambody import StreamBody
-from xml2dict import Xml2Dict
-from dicttoxml import dicttoxml
-from cos_auth import CosS3Auth
-from cos_comm import *
-from cos_threadpool import SimpleThreadPool
-from cos_exception import CosClientError
-from cos_exception import CosServiceError
+from .streambody import StreamBody
+from .cos_auth import CosS3Auth
+from .cos_comm import *
+from .cos_threadpool import SimpleThreadPool
+from .cos_exception import CosClientError
+from .cos_exception import CosServiceError
 
 logging.basicConfig(
                 level=logging.INFO,
@@ -29,8 +21,6 @@ logging.basicConfig(
                 filename='cos_v5.log',
                 filemode='w')
 logger = logging.getLogger(__name__)
-reload(sys)
-sys.setdefaultencoding('utf-8')
 
 
 class CosConfig(object):
@@ -90,14 +80,14 @@ class CosConfig(object):
                 raise CosClientError("Key can't be empty string")
             if path[0] == '/':
                 path = path[1:]
-            url = u"{scheme}://{bucket}.{region}.myqcloud.com/{path}".format(
+            url = "{scheme}://{bucket}.{region}.myqcloud.com/{path}".format(
                 scheme=scheme,
                 bucket=to_unicode(bucket),
                 region=region,
                 path=to_unicode(path)
             )
         else:
-            url = u"{scheme}://{bucket}.{region}.myqcloud.com/".format(
+            url = "{scheme}://{bucket}.{region}.myqcloud.com/".format(
                 scheme=self._scheme,
                 bucket=to_unicode(bucket),
                 region=self._region
@@ -190,8 +180,8 @@ class CosS3Client(object):
         :return(dict): 上传成功返回的结果，包含ETag等信息.
         """
         headers = mapped(kwargs)
-        if 'Metadata' in headers.keys():
-            for i in headers['Metadata'].keys():
+        if 'Metadata' in list(headers.keys()):
+            for i in list(headers['Metadata'].keys()):
                 headers[i] = headers['Metadata'][i]
             headers.pop('Metadata')
 
@@ -220,7 +210,7 @@ class CosS3Client(object):
         """
         headers = mapped(kwargs)
         params = {}
-        for key in headers.keys():
+        for key in list(headers.keys()):
             if key.startswith("response"):
                 params[key] = headers[key]
                 headers.pop(key)
@@ -251,7 +241,7 @@ class CosS3Client(object):
         """
         url = self._conf.uri(bucket=Bucket, path=quote(Key, '/-_.~'))
         sign = self.get_auth(Method='GET', Bucket=Bucket, Key=Key, Expired=300)
-        url = url + '?sign=' + urllib.quote(sign)
+        url = url + '?sign=' + urllib.parse.quote(sign)
         return url
 
     def delete_object(self, Bucket, Key, **kwargs):
@@ -298,11 +288,11 @@ class CosS3Client(object):
             auth=CosS3Auth(self._conf._secret_id, self._conf._secret_key),
             headers=headers)
         data = xml_to_dict(rt.text)
-        if 'Deleted' in data.keys() and not isinstance(data['Deleted'], list):
+        if 'Deleted' in list(data.keys()) and not isinstance(data['Deleted'], list):
             lst = []
             lst.append(data['Deleted'])
             data['Deleted'] = lst
-        if 'Error' in data.keys() and not isinstance(data['Error'], list):
+        if 'Error' in list(data.keys()) and not isinstance(data['Error'], list):
             lst = []
             lst.append(data['Error'])
             data['Error'] = lst
@@ -339,8 +329,8 @@ class CosS3Client(object):
         :return(dict): 拷贝成功的结果.
         """
         headers = mapped(kwargs)
-        if 'Metadata' in headers.keys():
-            for i in headers['Metadata'].keys():
+        if 'Metadata' in list(headers.keys()):
+            for i in list(headers['Metadata'].keys()):
                 headers[i] = headers['Metadata'][i]
             headers.pop('Metadata')
         headers['x-cos-copy-source'] = gen_copy_source_url(CopySource)
@@ -397,8 +387,8 @@ class CosS3Client(object):
         :return(dict): 初始化分块上传返回的结果，包含UploadId等信息.
         """
         headers = mapped(kwargs)
-        if 'Metadata' in headers.keys():
-            for i in headers['Metadata'].keys():
+        if 'Metadata' in list(headers.keys()):
+            for i in list(headers['Metadata'].keys()):
                 headers[i] = headers['Metadata'][i]
             headers.pop('Metadata')
 
@@ -527,7 +517,7 @@ class CosS3Client(object):
                 headers=headers,
                 params=params)
         data = xml_to_dict(rt.text)
-        if 'Part' in data.keys() and isinstance(data['Part'], dict):  # 只有一个part，将dict转为list，保持一致
+        if 'Part' in list(data.keys()) and isinstance(data['Part'], dict):  # 只有一个part，将dict转为list，保持一致
             lst = []
             lst.append(data['Part'])
             data['Part'] = lst
@@ -660,7 +650,7 @@ class CosS3Client(object):
                 auth=CosS3Auth(self._conf._secret_id, self._conf._secret_key))
 
         data = xml_to_dict(rt.text)
-        if 'Contents' in data.keys() and isinstance(data['Contents'], dict):  # 只有一个Contents，将dict转为list，保持一致
+        if 'Contents' in list(data.keys()) and isinstance(data['Contents'], dict):  # 只有一个Contents，将dict转为list，保持一致
                 lst = []
                 lst.append(data['Contents'])
                 data['Contents'] = lst
@@ -703,11 +693,11 @@ class CosS3Client(object):
                 auth=CosS3Auth(self._conf._secret_id, self._conf._secret_key))
 
         data = xml_to_dict(rt.text)
-        if 'Version' in data.keys() and isinstance(data['Version'], dict):  # 只有一个Version，将dict转为list，保持一致
+        if 'Version' in list(data.keys()) and isinstance(data['Version'], dict):  # 只有一个Version，将dict转为list，保持一致
                 lst = []
                 lst.append(data['Version'])
                 data['Version'] = lst
-        if 'DeleteMarker' in data.keys() and isinstance(data['DeleteMarker'], dict):
+        if 'DeleteMarker' in list(data.keys()) and isinstance(data['DeleteMarker'], dict):
                 lst = []
                 lst.append(data['DeleteMarker'])
                 data['DeleteMarker'] = lst
@@ -750,7 +740,7 @@ class CosS3Client(object):
                 auth=CosS3Auth(self._conf._secret_id, self._conf._secret_key))
 
         data = xml_to_dict(rt.text)
-        if 'Upload' in data.keys() and isinstance(data['Upload'], dict):  # 只有一个Upload，将dict转为list，保持一致
+        if 'Upload' in list(data.keys()) and isinstance(data['Upload'], dict):  # 只有一个Upload，将dict转为list，保持一致
                 lst = []
                 lst.append(data['Upload'])
                 data['Upload'] = lst
@@ -879,15 +869,15 @@ class CosS3Client(object):
             auth=CosS3Auth(self._conf._secret_id, self._conf._secret_key),
             headers=headers)
         data = xml_to_dict(rt.text)
-        if 'CORSRule' in data.keys() and not isinstance(data['CORSRule'], list):
+        if 'CORSRule' in list(data.keys()) and not isinstance(data['CORSRule'], list):
             lst = []
             lst.append(data['CORSRule'])
             data['CORSRule'] = lst
-        if 'CORSRule' in data.keys():
+        if 'CORSRule' in list(data.keys()):
             allow_lst = ['AllowedOrigin', 'AllowedMethod', 'AllowedHeader', 'ExposeHeader']
             for rule in data['CORSRule']:
                 for text in allow_lst:
-                    if text in rule.keys() and not isinstance(rule[text], list):
+                    if text in list(rule.keys()) and not isinstance(rule[text], list):
                         lst = []
                         lst.append(rule[text])
                         rule[text] = lst
@@ -955,7 +945,7 @@ class CosS3Client(object):
             auth=CosS3Auth(self._conf._secret_id, self._conf._secret_key),
             headers=headers)
         data = xml_to_dict(rt.text)
-        if 'Rule' in data.keys() and not isinstance(data['Rule'], list):
+        if 'Rule' in list(data.keys()) and not isinstance(data['Rule'], list):
             lst = []
             lst.append(data['Rule'])
             data['Rule'] = lst
@@ -1091,7 +1081,7 @@ class CosS3Client(object):
             auth=CosS3Auth(self._conf._secret_id, self._conf._secret_key),
             headers=headers)
         data = xml_to_dict(rt.text)
-        if 'Rule' in data.keys() and not isinstance(data['Rule'], list):
+        if 'Rule' in list(data.keys()) and not isinstance(data['Rule'], list):
             lst = []
             lst.append(data['Rule'])
             data['Rule'] = lst
@@ -1238,13 +1228,13 @@ class CosS3Client(object):
         :param md5_lst(list): 保存上传成功分块的MD5和序号.
         :return: None.
         """
-        print part_number
+        print(part_number)
         rt = self.upload_part_copy(bucket, key, part_number, upload_id, copy_source, copy_source_range)
         md5_lst.append({'PartNumber': part_number, 'ETag': rt['ETag']})
         return None
 
     def _check_same_region(self, dst_region, CopySource):
-        if 'Region' in CopySource.keys():
+        if 'Region' in list(CopySource.keys()):
             src_region = CopySource['Region']
             src_region = format_region(src_region)
         else:
@@ -1328,8 +1318,8 @@ class CosS3Client(object):
         :return(dict): 上传成功返回的结果，包含ETag等信息.
         """
         headers = mapped(kwargs)
-        if 'Metadata' in headers.keys():
-            for i in headers['Metadata'].keys():
+        if 'Metadata' in list(headers.keys()):
+            for i in list(headers['Metadata'].keys()):
                 headers[i] = headers['Metadata'][i]
             headers.pop('Metadata')
 
